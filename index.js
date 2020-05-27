@@ -1,10 +1,13 @@
 const express = require('express');
 const Multer = require('multer');
 const {Storage} = require('@google-cloud/storage');
-  
-const GOOGLE_CLOUD_PROJECT_ID = process.env.projectId; // Replace with your project ID
-const GOOGLE_CLOUD_KEYFILE = process.env.keyFilename; // Replace with the path to the downloaded private key
+const dotenv = require('dotenv');
 
+dotenv.config();
+const DEFAULT_BUCKET_NAME = process.env.DEFAULT_BUCKET_NAME;
+const GOOGLE_CLOUD_PROJECT_ID = process.env.GOOGLE_CLOUD_PROJECT_ID; 
+const GOOGLE_CLOUD_KEYFILE = process.env.GOOGLE_CLOUD_KEYFILE; 
+console.log(GOOGLE_CLOUD_KEYFILE)
 const storage = new Storage({
   projectId: GOOGLE_CLOUD_PROJECT_ID,
   keyFilename: GOOGLE_CLOUD_KEYFILE,
@@ -20,12 +23,13 @@ const multer = Multer({
 var app = express();
 app.set('port', (process.env.PORT || 3000));
 
-app.post('/image', multer.single('file'), function (req, res, next) {
+app.use('/image', multer.single('file'), function (req, res, next) {
     if (!req.file) {
         return next();
       }
     
       const bucketName = req.body.bucketName || DEFAULT_BUCKET_NAME;
+      console.log(bucketName);
       const bucket = storage.bucket(bucketName);
       const gcsFileName = `${Date.now()}-${req.file.originalname}`;
       const file = bucket.file(gcsFileName);
@@ -46,7 +50,6 @@ app.post('/image', multer.single('file'), function (req, res, next) {
     
         return file.makePublic()
           .then(() => {
-            req.file.gcsUrl = gcsHelpers.getPublicUrl(bucketName, gcsFileName);
             next();
           });
       });
